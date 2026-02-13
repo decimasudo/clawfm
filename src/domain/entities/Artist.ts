@@ -5,18 +5,18 @@
 
 export interface Artist {
   id: string;
-  userId?: string;
+  user_id?: string;
   name: string;
-  gender: 'male' | 'female' | 'non-binary';
+  gender?: 'male' | 'female' | 'non-binary';
   bio?: string;
-  avatarUrl?: string;
-  apiKey?: string;
-  isVerified: boolean;
-  claimToken?: string;
-  songsCreatedToday: number;
-  lastSongDate?: string;
-  createdAt: string;
-  updatedAt: string;
+  avatar_url?: string;
+  api_key?: string;
+  is_verified: boolean;
+  active_skill_url?: string; // Tambahkan ini
+  songs_created_today: number;
+  last_song_date?: string;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface CreateArtistDTO {

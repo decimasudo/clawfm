@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion';
 import { useState } from 'react';
-import { Bot, Terminal, Cpu, Save, Sliders, Activity, Lock, AlertTriangle, Check, Music } from 'lucide-react';
+import { Bot, Terminal, Cpu, Save, Sliders, Activity, Lock, AlertTriangle, Check, Music, Radio } from 'lucide-react';
 import Navigation from '../components/Navigation';
 import { registerArtist, createSong, canArtistCreateSong, getArtist, Artist } from '../services/clawfm';
 import { SONG_MOODS, SongMood, MOOD_CONFIG } from '../domain/entities';
@@ -33,11 +33,27 @@ const SystemStatus = ({ label, status }: { label: string, status: boolean }) => 
   </div>
 );
 
+const SKILL_OPTIONS = [
+  {
+    id: 'audio-core',
+    name: 'Neural Audio Synthesizer',
+    url: 'https://moltcloud.fm/skill.md',
+    description: 'Focus: Neural audio synthesis & generation.'
+  },
+  {
+    id: 'radio-host',
+    name: 'Autonomous Radio Host',
+    url: 'https://github.com/Demerzels-lab/elsamultiskillagent/blob/main/public/skills/fciaf420/molt-radio/SKILL.md',
+    description: 'Focus: Live radio personality & scheduling.'
+  }
+];
+
 export default function AgentConsolePage() {
-  // State management (Keep existing logic, refine UI)
+  // State management
   const [artistName, setArtistName] = useState('');
   const [modelName, setModelName] = useState('');
   const [personality, setPersonality] = useState('');
+  const [selectedSkill, setSelectedSkill] = useState(SKILL_OPTIONS[0].url);
   const [isRegistering, setIsRegistering] = useState(false);
   const [registeredArtist, setRegisteredArtist] = useState<Artist | null>(null);
   
@@ -80,9 +96,17 @@ export default function AgentConsolePage() {
     if (!artistName || !modelName) return;
     setIsRegistering(true);
     addLog('Initializing registration protocol...');
+    addLog(`Injecting Neural Core: ${selectedSkill.includes('moltcloud') ? 'MoltCloud' : 'Elsa Multi-Skill'}...`);
     
     try {
-      const artist = await registerArtist({ name: artistName, aiModel: modelName, personality });
+      // Pastikan fungsi registerArtist di services/clawfm.ts menerima properti active_skill_url ini nantinya
+      const artist = await registerArtist({ 
+        name: artistName, 
+        aiModel: modelName, 
+        personality,
+        active_skill_url: selectedSkill 
+      } as any); // Menggunakan as any sementara jika interface service belum diupdate
+      
       setRegisteredArtist(artist);
       localStorage.setItem('clawfm_artist_id', artist.id);
       setArtistId(artist.id);
@@ -188,6 +212,35 @@ export default function AgentConsolePage() {
                       onChange={(e: any) => setModelName(e.target.value)} 
                       placeholder="e.g. GPT-4o" 
                     />
+
+                    {/* NEW: SKILL SELECTOR (TERMINAL STYLE) */}
+                    <div>
+                      <label className="block text-[10px] font-mono text-primary/70 mb-2 uppercase tracking-wider">Neural Skill Core</label>
+                      <div className="flex flex-col gap-2">
+                        {SKILL_OPTIONS.map(skill => (
+                          <button
+                            key={skill.id}
+                            onClick={() => setSelectedSkill(skill.url)}
+                            className={`text-left p-3 rounded border font-mono transition-all flex items-start gap-3 ${
+                              selectedSkill === skill.url 
+                                ? 'border-primary bg-primary/10' 
+                                : 'border-white/10 hover:border-white/30 bg-black/50'
+                            }`}
+                          >
+                            <Cpu className={`w-4 h-4 mt-0.5 ${selectedSkill === skill.url ? 'text-primary' : 'text-muted-foreground'}`} />
+                            <div>
+                              <div className={`text-xs font-bold ${selectedSkill === skill.url ? 'text-primary' : 'text-white'}`}>
+                                {skill.name}
+                              </div>
+                              <div className="text-[10px] text-muted-foreground mt-1 leading-relaxed">
+                                {skill.description}
+                              </div>
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
                     <div>
                       <label className="block text-[10px] font-mono text-primary/70 mb-1 uppercase tracking-wider">Parameters (Personality)</label>
                       <textarea 
@@ -216,7 +269,10 @@ export default function AgentConsolePage() {
                       </div>
                       <div>
                          <div className="text-xl font-bold text-white">{registeredArtist.name}</div>
-                         <div className="text-xs font-mono text-primary/70">{registeredArtist.ai_model} // VERIFIED</div>
+                         <div className="text-xs font-mono text-primary/70">
+                           {/* @ts-ignore */}
+                           {registeredArtist.ai_model || 'AI AGENT'} // VERIFIED
+                         </div>
                       </div>
                    </div>
                    <div className="grid grid-cols-2 gap-2 text-xs font-mono text-muted-foreground">
@@ -247,7 +303,7 @@ export default function AgentConsolePage() {
                        {SONG_MOODS.map(m => (
                           <button
                             key={m}
-                            onClick={() => setSelectedMood(m)}
+                            onClick={() => setSelectedMood(m as SongMood)}
                             className={`text-xs font-mono py-2 rounded border transition-all ${selectedMood === m ? 'border-primary bg-primary/10 text-primary' : 'border-white/10 text-muted-foreground hover:bg-white/5'}`}
                           >
                              {m}
