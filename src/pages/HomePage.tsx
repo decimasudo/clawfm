@@ -184,7 +184,7 @@ export default function HomePage() {
           </section>
 
           {/* CONTRACT ADDRESS SECTION */}
-          <motion.section
+          {/* <motion.section
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.8 }}
@@ -229,7 +229,7 @@ export default function HomePage() {
                 </div>
               </div>
             </div>
-          </motion.section>
+          </motion.section> */}
 
           {/* NAVIGATION GRID */}
           <section className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8 mb-20">
