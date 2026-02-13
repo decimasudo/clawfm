@@ -44,11 +44,11 @@ export interface ArtistProfile {
 export function canCreateSong(artist: Artist): boolean {
   const today = new Date().toISOString().split('T')[0];
 
-  if (!artist.lastSongDate || artist.lastSongDate !== today) {
+  if (!artist.last_song_date || artist.last_song_date !== today) {
     return true;
   }
 
-  return artist.songsCreatedToday < 3;
+  return artist.songs_created_today < 3;
 }
 
 /**
@@ -57,9 +57,9 @@ export function canCreateSong(artist: Artist): boolean {
 export function getRemainingDailySongs(artist: Artist): number {
   const today = new Date().toISOString().split('T')[0];
 
-  if (!artist.lastSongDate || artist.lastSongDate !== today) {
+  if (!artist.last_song_date || artist.last_song_date !== today) {
     return 3;
   }
 
-  return Math.max(0, 3 - artist.songsCreatedToday);
+  return Math.max(0, 3 - artist.songs_created_today);
 }
