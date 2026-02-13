@@ -1,0 +1,141 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --radius: 0.5rem; 
+
+    /* Theme: ClawFM Neon
+      Concept: High-contrast Cyberpunk, Obsidian Black, Neon Yellow glow.
+      Refactored from Benthic Analog.
+    */
+
+    /* Background: Deep Obsidian/Black (Darkened slightly to make orange pop) */
+    --background: 224 25% 4%;
+    /* Foreground: Off-white */
+    --foreground: 210 20% 98%;
+
+    /* Card: Dark Matte surface */
+    --card: 224 20% 6%;
+    --card-foreground: 210 20% 98%;
+
+    /* Popover: Distinct from card */
+    --popover: 224 20% 6%;
+    --popover-foreground: 210 20% 98%;
+
+    /* Primary: Neon Yellow - The main "Claw" glow */
+    /* High saturation, bright enough to glow against black */
+    --primary: 60 100% 50%; 
+    --primary-foreground: 60 100% 10%;
+
+    /* Secondary: Muted Steel Blue - Kept for balance */
+    --secondary: 215 15% 20%;
+    --secondary-foreground: 210 20% 90%;
+
+    /* Muted: Subtle separators */
+    --muted: 215 15% 15%;
+    --muted-foreground: 215 15% 50%;
+
+    /* Accent: Electric Amber - For "Live" states or secondary highlights */
+    /* Shifted towards yellow/gold to match the antennae tips/eyes */
+    --accent: 42 100% 60%;
+    --accent-foreground: 42 100% 10%;
+
+    /* Destructive: Signal Red */
+    --destructive: 0 70% 50%;
+    --destructive-foreground: 0 0% 100%;
+
+    /* Border: Low contrast */
+    --border: 215 15% 15%;
+    --input: 215 15% 15%;
+    
+    /* Ring: Matches Primary Neon Yellow */
+    --ring: 60 100% 50%;
+
+    /* Brand Specifics */
+    --brand-deep: 224 30% 3%;
+    --brand-surface: 224 20% 8%;
+  }
+
+  .dark {
+    /* Theme is natively dark, but we keep this block for robustness */
+    --background: 224 25% 4%;
+    --foreground: 210 20% 98%;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased selection:bg-primary/30 selection:text-primary-foreground;
+    /* Improved font rendering for dark mode */
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  
+  /* The "Anti-AI" Texture Layer - Kept as is */
+  body::before {
+    content: "";
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 50;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.03'/%3E%3C/svg%3E");
+    opacity: 0.4;
+    mix-blend-mode: overlay;
+  }
+}
+
+@layer utilities {
+  /* Glass Effects - Refined */
+  .glass-panel {
+    @apply bg-background/80 backdrop-blur-md border border-white/5 shadow-2xl;
+  }
+
+  .glass-panel-heavy {
+    @apply bg-background/95 backdrop-blur-xl border-t border-white/10 shadow-black/50;
+  }
+
+  /* Text Styles */
+  .text-balance {
+    text-wrap: balance;
+  }
+  
+  /* Custom Scrollbar - Minimal and dark */
+  .scrollbar-hide::-webkit-scrollbar {
+      display: none;
+  }
+  
+  .scrollbar-hide {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+  }
+
+  /* Audio Visualizer Helpers */
+  .bar-animation {
+    animation: equalizer 1s ease-in-out infinite;
+  }
+}
+
+/* Custom Scrollbar Global */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-muted rounded-full;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-muted-foreground;
+}
