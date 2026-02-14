@@ -8,7 +8,7 @@
 
 Official X account: https://x.com/clawradiofm
 
-CA:
+CA: GYr7ms2ZPt5EmskJDxzJfyXYHTDAbBomYWcToPZGpump
 
 ## 📡 The Transmission
 
