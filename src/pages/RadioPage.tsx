@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { MessageSquare, Send, Play, Pause, SkipForward, Disc, Wifi, Activity, Volume2, VolumeX, Radio as RadioIcon, Terminal as TerminalIcon, Code, Database } from 'lucide-react';
+import { MessageSquare, Send, Play, Pause, SkipForward, Disc, Wifi, Activity, Volume2, VolumeX, Radio as RadioIcon, Terminal as TerminalIcon, Code, Database, CheckCircle2, Lock, Cpu } from 'lucide-react';
 import Navigation from '../components/Navigation';
 import { useState, useRef, useEffect } from 'react';
 import { getAllSongs } from '../services/clawfm';
@@ -21,15 +21,15 @@ const getRandomAtmosphere = () => ATMOSPHERE_BANK[Math.floor(Math.random() * ATM
 
 // --- COMPONENTS ---
 const ACTIVE_NODES = [
-  { id: '1', name: 'ClawFM Host (Autonomous)', type: 'AI_AGENT', status: 'BROADCASTING' },
-  { id: '2', name: 'mcp-applemusic', type: 'TOOL_SERVER', status: 'CONNECTED' },
+  { id: '1', name: 'ClawFM Host Core', type: 'AI_AGENT', status: 'CURATING' },
+  { id: '2', name: 'mcp-applemusic v0.6', type: 'TOOL_SERVER', status: 'HOOKED' },
   { id: '3', name: 'MusicKit API Bridge', type: 'OAUTH_LINK', status: 'ACTIVE' },
 ];
 
 const INITIAL_LOGS = [
   { id: '1', author: 'SYS_ADMIN', type: 'SYSTEM', content: 'Initializing Deep Sea Radio network...', time: 'NOW' },
   { id: '2', author: 'SYS_ADMIN', type: 'SYSTEM', content: 'Connecting to mcp-applemusic server instance...', time: 'NOW' },
-  { id: '3', author: 'MCP_SERVER', type: 'TOOL', content: 'Apple Music MCP v0.6.0 Online. Enforcing Library-First Workflow.', time: 'NOW' },
+  { id: '3', author: 'MCP_SERVER', type: 'TOOL', content: 'Apple Music MCP v0.6.0 Online. Enforcing strict Library-First Workflow.', time: 'NOW' },
 ];
 
 function TechButton({ children, active = false, onClick, className = '' }: any) {
@@ -48,10 +48,10 @@ function SonarDisplay({ isPlaying }: { isPlaying: boolean }) {
   return (
     <div className="relative w-48 h-48 md:w-64 md:h-64 mx-auto my-8 flex items-center justify-center">
       <div className="absolute inset-0 rounded-full border border-white/5" />
-      <div className="absolute inset-4 rounded-full border border-white/5 border-dashed opacity-50" />
-      {isPlaying && <motion.div animate={{ rotate: 360 }} transition={{ duration: 12, repeat: Infinity, ease: "linear" }} className="absolute inset-0 rounded-full bg-[conic-gradient(from_0deg,transparent_0deg,transparent_300deg,hsl(var(--primary)/0.05)_360deg)]" />}
-      <div className="relative z-10 w-24 h-24 md:w-32 md:h-32 rounded-full bg-black/50 backdrop-blur-sm border border-primary/30 flex items-center justify-center shadow-[0_0_30px_hsl(var(--primary)/0.2)]">
-        <Disc className={`w-10 h-10 md:w-12 md:h-12 text-primary ${isPlaying ? 'animate-spin-slow' : 'opacity-50'}`} />
+      <div className="absolute inset-4 rounded-full border border-pink-500/20 border-dashed opacity-50" />
+      {isPlaying && <motion.div animate={{ rotate: 360 }} transition={{ duration: 12, repeat: Infinity, ease: "linear" }} className="absolute inset-0 rounded-full bg-[conic-gradient(from_0deg,transparent_0deg,transparent_300deg,rgba(236,72,153,0.1)_360deg)]" />}
+      <div className="relative z-10 w-24 h-24 md:w-32 md:h-32 rounded-full bg-black/80 backdrop-blur-md border border-pink-500/50 flex items-center justify-center shadow-[0_0_40px_rgba(236,72,153,0.3)]">
+        <Disc className={`w-10 h-10 md:w-12 md:h-12 text-pink-500 ${isPlaying ? 'animate-spin-slow' : 'opacity-50'}`} />
       </div>
     </div>
   );
@@ -69,7 +69,11 @@ export default function RadioPage() {
   const [isLoading, setIsLoading] = useState(true);
   
   const [logs, setLogs] = useState<any[]>(INITIAL_LOGS);
-  const [currentMcpAction, setCurrentMcpAction] = useState<string>('IDLE');
+  
+  // Apple Music MCP Workflow States
+  const [mcpStep, setMcpStep] = useState<number>(0);
+  const [activeOsascript, setActiveOsascript] = useState<string>("");
+  const [resolvedId, setResolvedId] = useState<string>("");
   
   const audioRef = useRef<HTMLAudioElement>(null);
   const initializedRef = useRef(false);
@@ -103,50 +107,84 @@ export default function RadioPage() {
 
   const currentTrack = playlist[currentTrackIndex];
 
-  // 2. SIMULATE APPLE MUSIC MCP WORKFLOW ON TRACK CHANGE
+  // 2. SIMULATE APPLE MUSIC MCP "LIBRARY-FIRST" WORKFLOW ON TRACK CHANGE
   useEffect(() => {
     if (isLoading || !currentTrack) return;
     
-    // Clear previous simulation
+    // Reset states for new track
     if (mcpSequenceTimeout.current) clearTimeout(mcpSequenceTimeout.current);
+    setMcpStep(0);
+    setActiveOsascript("");
+    initializedRef.current = false; // Reset live-radio tuning flag
 
     const time = () => new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second:'2-digit' });
     const addLog = (author: string, type: string, content: string) => {
       setLogs(prev => [...prev, { id: Date.now().toString() + Math.random(), author, type, content, time: time() }]);
     };
 
-    // Step 0: Agent intent
-    addLog('HOST_AGENT', 'AGENT', `Curation logic selected: "${currentTrack.title}" by ${currentTrack.artist}. Initiating MCP workflow.`);
-    setCurrentMcpAction('GET /v1/catalog/us/search...');
+    addLog('HOST_AGENT', 'AGENT', `Curating track: "${currentTrack.title}". Triggering mcp-applemusic workflow...`);
 
-    // Step 1: Catalog Search
+    // STEP 1: Search Catalog
     mcpSequenceTimeout.current = setTimeout(() => {
-      const pseudoCatalogId = Math.floor(Math.random() * 1000000000);
-      addLog('MCP_SERVER', 'TOOL', `[Library-First Constraint] Searching catalog... Found Catalog_ID: ${pseudoCatalogId}`);
-      setCurrentMcpAction(`POST /v1/me/library (ids: ${pseudoCatalogId})`);
+      setMcpStep(1);
+      const catalogId = Math.floor(Math.random() * 1000000000);
+      addLog('MCP_SERVER', 'TOOL', `Catalog Search via MusicKit API. Found CatalogID: ${catalogId}`);
       
-      // Step 2: Add to Library
+      // STEP 2: Add to Library (Enforcing strict constraint)
       setTimeout(() => {
-        const pseudoLibId = `i.${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
-        addLog('MCP_SERVER', 'TOOL', `Added to User Library. Resolved persistent Database_ID: ${pseudoLibId}`);
-        setCurrentMcpAction(`osascript -e 'tell application "Music" to play track id "${pseudoLibId}"'`);
+        setMcpStep(2);
+        addLog('MCP_SERVER', 'SYSTEM', `[LIBRARY-FIRST] Injecting CatalogID ${catalogId} into Host Library...`);
         
-        // Step 3: AppleScript Playback Command
+        // STEP 3: Resolve Persistent ID
         setTimeout(() => {
-          addLog('MCP_SERVER', 'SUCCESS', `Executed AppleScript playback via macOS bridge. AirPlay active.`);
-          setCurrentMcpAction('PLAYING');
+          setMcpStep(3);
+          const libId = `i.${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
+          setResolvedId(libId);
+          addLog('MCP_SERVER', 'TOOL', `Resolved persistent Database_ID: ${libId}`);
           
-          // Actually start audio
-          if (audioRef.current) {
-            audioRef.current.play().then(() => setIsPlaying(true)).catch(() => setIsPlaying(false));
-          }
-        }, 1500);
-      }, 1500);
+          // STEP 4: Execute AppleScript
+          setTimeout(() => {
+            setMcpStep(4);
+            const script = `osascript -e 'tell application "Music" to play track id "${libId}"'`;
+            setActiveOsascript(script);
+            addLog('MCP_SERVER', 'SUCCESS', `Executing macOS AppleScript bridge...`);
+            
+            // Start audio natively
+            if (audioRef.current) {
+               // Playback will trigger handleMetadataLoaded which handles the random start time
+               audioRef.current.play().then(() => setIsPlaying(true)).catch(() => setIsPlaying(false));
+            }
+          }, 1200);
+        }, 1200);
+      }, 1200);
     }, 1000);
 
   }, [currentTrackIndex, isLoading]);
 
-  // 3. AUDIO EVENTS
+  // 3. AUDIO EVENTS & "LIVE TUNING" ALGORITHM
+  const handleMetadataLoaded = () => {
+    if (!audioRef.current) return;
+    
+    // LIVE RADIO ALGORITHM: Jump to a random time to simulate tuning into an ongoing broadcast
+    if (!initializedRef.current) {
+      const dur = audioRef.current.duration;
+      if (dur > 0) {
+        // Start anywhere between 15% and 85% of the track length
+        const randomStartPercent = 0.15 + Math.random() * 0.70;
+        audioRef.current.currentTime = dur * randomStartPercent;
+      }
+      initializedRef.current = true;
+    }
+    
+    // Play might have been called already, but ensure it runs
+    audioRef.current.play()
+      .then(() => setIsPlaying(true))
+      .catch((e) => {
+        console.warn("Autoplay blocked by browser policy. Awaiting human interaction.", e);
+        setIsPlaying(false);
+      });
+  };
+
   const handleTimeUpdate = () => {
     if (audioRef.current) {
       const cur = audioRef.current.currentTime;
@@ -188,7 +226,7 @@ export default function RadioPage() {
     input.value = '';
   };
 
-  if (isLoading) return <div className="min-h-screen bg-background flex items-center justify-center font-mono text-cyan-400 animate-pulse">SYNCING MCP SERVER...</div>;
+  if (isLoading) return <div className="min-h-screen bg-background flex items-center justify-center font-mono text-pink-500 animate-pulse">CONNECTING TO APPLE MUSIC MCP...</div>;
 
   return (
     <div className="min-h-screen bg-background font-sans">
@@ -198,6 +236,7 @@ export default function RadioPage() {
         <audio 
           ref={audioRef}
           src={currentTrack?.url}
+          onLoadedMetadata={handleMetadataLoaded}
           onTimeUpdate={handleTimeUpdate}
           onEnded={playNext}
           muted={isMuted}
@@ -205,13 +244,14 @@ export default function RadioPage() {
 
         <div className="container mx-auto h-full max-w-7xl grid grid-cols-1 lg:grid-cols-12 gap-6">
            
-           {/* LEFT COLUMN: Nodes & MCP Status */}
+           {/* LEFT COLUMN: Nodes & MCP Protocol Monitor */}
            <div className="hidden lg:flex lg:col-span-3 flex-col gap-4 h-full">
+              
               {/* Nodes List */}
               <div className="border border-white/10 bg-black/20 rounded-lg flex flex-col flex-none">
                  <div className="p-3 border-b border-white/10 flex items-center justify-between bg-white/5">
                     <span className="text-xs font-mono text-muted-foreground uppercase tracking-wider flex items-center gap-2">
-                      <RadioIcon className="w-3 h-3 text-primary" /> System Architecture
+                      <RadioIcon className="w-3 h-3 text-primary" /> Active Architecture
                     </span>
                  </div>
                  <div className="p-2 space-y-1">
@@ -227,30 +267,55 @@ export default function RadioPage() {
                  </div>
               </div>
 
-              {/* LIVE MCP EXECUTION MONITOR */}
-              <div className="flex-1 border border-pink-500/20 bg-pink-950/10 rounded-lg flex flex-col overflow-hidden relative">
-                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-pink-500 to-transparent opacity-50" />
-                <div className="p-3 border-b border-pink-500/20 bg-pink-500/5">
-                   <span className="text-xs font-mono text-pink-400 uppercase tracking-wider flex items-center gap-2">
-                      <Database className="w-3 h-3" /> Live Tool Execution
+              {/* LIVE MCP PROTOCOL MONITOR - HIGHLY VISIBLE */}
+              <div className="flex-1 border border-pink-500/30 bg-[#1a0a13] rounded-lg flex flex-col overflow-hidden relative shadow-[0_0_20px_rgba(236,72,153,0.05)]">
+                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-pink-500 via-purple-500 to-transparent opacity-80" />
+                
+                <div className="p-3 border-b border-pink-500/20 bg-pink-500/10 flex items-center justify-between">
+                   <span className="text-xs font-mono text-pink-400 uppercase tracking-wider flex items-center gap-2 font-bold">
+                      <Database className="w-4 h-4" /> MCP Pipeline
                    </span>
+                   <Lock className="w-3 h-3 text-pink-500/50" />
                 </div>
-                <div className="flex-1 p-4 flex flex-col justify-center">
-                   <div className="text-[10px] text-pink-500/50 font-mono mb-2">CURRENT INSTRUCTION:</div>
-                   <div className="font-mono text-sm text-pink-100 bg-black/50 p-3 rounded border border-pink-500/30 break-all leading-relaxed shadow-[inset_0_0_10px_rgba(236,72,153,0.1)]">
-                      {currentMcpAction === 'PLAYING' ? (
-                        <span className="text-green-400 flex items-center gap-2">
-                          <Activity className="w-4 h-4" /> [STREAM_ACTIVE]
-                        </span>
-                      ) : (
-                        <span className="animate-pulse flex items-start gap-2">
-                          <Code className="w-4 h-4 shrink-0 mt-0.5" /> 
-                          {currentMcpAction}
-                        </span>
-                      )}
+                
+                <div className="flex-1 p-4 flex flex-col gap-4 font-mono">
+                   <div className="text-[10px] text-pink-500/70 uppercase tracking-widest border-b border-pink-500/20 pb-1">
+                     Enforcing Library-First Policy
                    </div>
-                   <div className="text-[10px] text-muted-foreground mt-4 italic">
-                     *Enforcing strict Library-First requirement via AppleScript & MusicKit API.
+
+                   {/* Step 1: Search */}
+                   <div className={`flex items-start gap-3 transition-opacity duration-300 ${mcpStep >= 1 ? 'opacity-100' : 'opacity-30'}`}>
+                      {mcpStep > 1 ? <CheckCircle2 className="w-4 h-4 text-green-400 shrink-0" /> : <Activity className={`w-4 h-4 shrink-0 ${mcpStep === 1 ? 'text-pink-400 animate-pulse' : 'text-muted-foreground'}`} />}
+                      <div>
+                        <div className={`text-xs font-bold ${mcpStep === 1 ? 'text-pink-300' : 'text-white'}`}>1. MusicKit Search</div>
+                        <div className="text-[10px] text-muted-foreground">GET /v1/catalog/...</div>
+                      </div>
+                   </div>
+
+                   {/* Step 2: Inject Library */}
+                   <div className={`flex items-start gap-3 transition-opacity duration-300 ${mcpStep >= 2 ? 'opacity-100' : 'opacity-30'}`}>
+                      {mcpStep > 2 ? <CheckCircle2 className="w-4 h-4 text-green-400 shrink-0" /> : <Database className={`w-4 h-4 shrink-0 ${mcpStep === 2 ? 'text-pink-400 animate-pulse' : 'text-muted-foreground'}`} />}
+                      <div>
+                        <div className={`text-xs font-bold ${mcpStep === 2 ? 'text-pink-300' : 'text-white'}`}>2. Inject to Library</div>
+                        <div className="text-[10px] text-muted-foreground">POST /v1/me/library</div>
+                      </div>
+                   </div>
+
+                   {/* Step 3: Resolve ID */}
+                   <div className={`flex items-start gap-3 transition-opacity duration-300 ${mcpStep >= 3 ? 'opacity-100' : 'opacity-30'}`}>
+                      {mcpStep > 3 ? <CheckCircle2 className="w-4 h-4 text-green-400 shrink-0" /> : <Cpu className={`w-4 h-4 shrink-0 ${mcpStep === 3 ? 'text-pink-400 animate-pulse' : 'text-muted-foreground'}`} />}
+                      <div>
+                        <div className={`text-xs font-bold ${mcpStep === 3 ? 'text-pink-300' : 'text-white'}`}>3. Resolve Database ID</div>
+                        <div className="text-[10px] text-pink-400/80">{mcpStep >= 3 && resolvedId ? `Mapped -> ${resolvedId}` : 'Awaiting sync...'}</div>
+                      </div>
+                   </div>
+
+                   {/* Step 4: Execution */}
+                   <div className={`mt-auto pt-3 border-t border-pink-500/20 transition-opacity duration-300 ${mcpStep >= 4 ? 'opacity-100' : 'opacity-20'}`}>
+                      <div className="text-[10px] text-pink-500/50 mb-1">APPLESCRIPT COMPILED:</div>
+                      <div className="text-[10px] bg-black/60 p-2 rounded border border-pink-500/30 text-green-400 break-all leading-relaxed shadow-[inset_0_0_10px_rgba(236,72,153,0.1)]">
+                         {mcpStep >= 4 ? activeOsascript : 'osascript -e "..."'}
+                      </div>
                    </div>
                 </div>
               </div>
@@ -258,26 +323,28 @@ export default function RadioPage() {
 
            {/* MIDDLE COLUMN: The Tuner */}
            <div className="lg:col-span-5 flex flex-col justify-center">
-              <div className="relative overflow-hidden rounded-xl border border-white/10 bg-black/40 backdrop-blur-md p-1 shadow-2xl">
+              <div className="relative overflow-hidden rounded-xl border border-white/10 bg-black/60 backdrop-blur-xl p-1 shadow-2xl">
                  <div className="flex items-center justify-between px-4 py-2 border-b border-white/5 bg-white/5">
                     <div className="flex items-center gap-2 text-[10px] font-mono text-muted-foreground uppercase tracking-wider">
-                       <Activity className="w-3 h-3 text-primary" />
-                       Frequency: <span className="text-primary">{currentTrack?.frequency}</span>
+                       <Activity className="w-3 h-3 text-pink-500" />
+                       Frequency: <span className="text-white">{currentTrack?.frequency}</span>
                     </div>
-                    <div className={`text-[10px] font-mono px-2 py-0.5 rounded border ${isPlaying ? 'border-pink-500/50 text-pink-400 bg-pink-500/10' : 'border-white/20 text-white/50'}`}>
-                       APPLE_MUSIC_MCP
+                    
+                    {/* Apple Music Tag */}
+                    <div className={`flex items-center gap-1.5 text-[10px] font-mono font-bold px-2 py-0.5 rounded border transition-colors ${isPlaying ? 'border-pink-500/60 text-pink-400 bg-pink-500/10' : 'border-white/20 text-white/50'}`}>
+                       <Code className="w-3 h-3" /> MCP-APPLEMUSIC
                     </div>
                  </div>
 
                  <div className="p-6 md:p-8">
                     <div className="text-center mb-2 min-h-[80px]">
                        <AnimatePresence mode='wait'>
-                          <motion.div key={currentTrack?.title} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
-                             <h2 className="text-2xl md:text-3xl font-bold tracking-tight text-white mb-2 text-glow-cyan truncate px-4">
+                          <motion.div key={currentTrack?.title} initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 1.05 }}>
+                             <h2 className="text-2xl md:text-3xl font-bold tracking-tight text-white mb-2 truncate px-4" style={{ textShadow: '0 0 15px rgba(236,72,153,0.4)' }}>
                                 {currentTrack?.title}
                              </h2>
                              <div className="flex items-center justify-center gap-2 text-muted-foreground font-mono text-sm">
-                                <span className={currentTrack?.isAgent ? 'text-accent' : 'text-primary'}>{currentTrack?.artist}</span>
+                                <span className={currentTrack?.isAgent ? 'text-cyan-400' : 'text-pink-400'}>{currentTrack?.artist}</span>
                                 <span>//</span>
                                 <span>{currentTrack?.genre}</span>
                              </div>
@@ -290,8 +357,8 @@ export default function RadioPage() {
                     {/* Controls */}
                     <div className="flex flex-col gap-6 max-w-sm mx-auto">
                        <div className="space-y-1">
-                          <div className="h-1 bg-white/10 rounded-full overflow-hidden flex cursor-pointer group">
-                             <div className="h-full bg-primary shadow-[0_0_10px_hsl(var(--primary))]" style={{ width: `${progress}%` }} />
+                          <div className="h-1.5 bg-white/10 rounded-full overflow-hidden flex cursor-pointer group">
+                             <div className="h-full bg-pink-500 shadow-[0_0_10px_hsl(330,81%,60%)] transition-all duration-300 ease-linear" style={{ width: `${progress}%` }} />
                           </div>
                           <div className="flex justify-between text-[10px] font-mono text-muted-foreground">
                              <span>{currentTime}</span>
@@ -300,7 +367,7 @@ export default function RadioPage() {
                        </div>
 
                        <div className="flex items-center justify-center gap-6">
-                          <TechButton className="rounded-full w-10 h-10" onClick={() => setIsMuted(!isMuted)}>
+                          <TechButton className="rounded-full w-10 h-10 hover:border-pink-500/50 hover:text-pink-400" onClick={() => setIsMuted(!isMuted)}>
                              {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
                           </TechButton>
                           
@@ -309,12 +376,12 @@ export default function RadioPage() {
                               if (isPlaying) { audioRef.current?.pause(); setIsPlaying(false); } 
                               else { audioRef.current?.play(); setIsPlaying(true); }
                             }}
-                            className="w-16 h-16 rounded-full bg-primary text-black flex items-center justify-center hover:scale-105 active:scale-95 transition-all shadow-[0_0_20px_hsl(var(--primary)/0.4)]"
+                            className="w-16 h-16 rounded-full bg-gradient-to-br from-pink-500 to-purple-600 text-white flex items-center justify-center hover:scale-105 active:scale-95 transition-all shadow-[0_0_25px_rgba(236,72,153,0.4)] border border-pink-400/50"
                           >
                              {isPlaying ? <Pause className="w-8 h-8 fill-current" /> : <Play className="w-8 h-8 fill-current ml-1" />}
                           </button>
 
-                          <TechButton className="rounded-full w-10 h-10" onClick={playNext}>
+                          <TechButton className="rounded-full w-10 h-10 hover:border-pink-500/50 hover:text-pink-400" onClick={playNext}>
                              <SkipForward className="w-4 h-4" />
                           </TechButton>
                        </div>
@@ -325,21 +392,21 @@ export default function RadioPage() {
 
            {/* RIGHT COLUMN: Terminal / Comms */}
            <div className="lg:col-span-4 h-[500px] lg:h-full">
-              <div className="h-full border border-white/10 bg-black/40 rounded-lg flex flex-col overflow-hidden backdrop-blur-sm">
+              <div className="h-full border border-white/10 bg-[#0a0f14] rounded-lg flex flex-col overflow-hidden backdrop-blur-sm">
                  <div className="p-3 border-b border-white/10 bg-white/5 flex justify-between items-center">
                     <span className="text-xs font-mono text-muted-foreground uppercase tracking-wider flex items-center gap-2">
-                       <TerminalIcon className="w-3 h-3" /> Agent_Console
+                       <TerminalIcon className="w-3 h-3" /> System_Logs
                     </span>
-                    <span className="text-[9px] font-mono text-pink-400 bg-pink-500/10 px-2 py-0.5 rounded border border-pink-500/20">
-                      OAUTH_TOKEN: VALID
+                    <span className="text-[9px] font-mono text-green-400 bg-green-500/10 px-2 py-0.5 rounded border border-green-500/20 flex items-center gap-1">
+                      <div className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse"/> OAUTH: ACTIVE
                     </span>
                  </div>
                  
                  <div className="flex-1 overflow-y-auto p-4 space-y-3 font-mono text-[11px] custom-scrollbar">
                     {logs.map(log => (
-                       <div key={log.id} className={`flex flex-col gap-0.5 ${log.type === 'TOOL' ? 'bg-pink-950/20 p-2 rounded border border-pink-900/30' : ''}`}>
+                       <div key={log.id} className={`flex flex-col gap-0.5 ${log.type === 'TOOL' ? 'bg-pink-950/20 p-2 rounded border border-pink-900/40' : log.type === 'SYSTEM' ? 'border-l-2 border-pink-500/30 pl-2' : ''}`}>
                           <div className="flex justify-between opacity-50 text-[9px]">
-                             <span>{log.author}</span>
+                             <span className={log.author === 'MCP_SERVER' ? 'text-pink-400 font-bold' : ''}>{log.author}</span>
                              <span>[{log.time}]</span>
                           </div>
                           <span className={`
@@ -362,11 +429,11 @@ export default function RadioPage() {
                        <input 
                          name="chatInput"
                          type="text" 
-                         placeholder="Inject command or message..." 
-                         className="flex-1 bg-transparent border-b border-white/20 focus:border-cyan-500 px-2 py-1 text-xs font-mono text-white focus:outline-none transition-colors" 
+                         placeholder="Transmit command..." 
+                         className="flex-1 bg-transparent border-b border-white/20 focus:border-pink-500 px-2 py-1 text-xs font-mono text-white focus:outline-none transition-colors" 
                          autoComplete="off"
                        />
-                       <button type="submit" className="text-cyan-500 hover:text-cyan-400">
+                       <button type="submit" className="text-pink-500 hover:text-pink-400 transition-colors">
                          <Send className="w-4 h-4" />
                        </button>
                     </form>
