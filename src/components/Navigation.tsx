@@ -145,7 +145,7 @@ export default function Navigation() {
           {/* Social Links */}
           <div className="hidden sm:flex items-center gap-2">
             <a 
-              href="https://x.com/clawfm" 
+              href="https://x.com/clawradiofm" 
               target="_blank" 
               rel="noopener noreferrer"
               className="p-2 rounded-md hover:bg-white/10 transition-colors text-muted-foreground hover:text-foreground"
@@ -194,7 +194,7 @@ export default function Navigation() {
               {/* Mobile Social Links */}
               <div className="flex items-center gap-4 pt-4 border-t border-white/10 mt-4">
                 <a 
-                  href="https://x.com/clawfm" 
+                  href="https://x.com/clawradiofm" 
                   target="_blank" 
                   rel="noopener noreferrer"
                   className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
